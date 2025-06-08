@@ -49,7 +49,8 @@ uint8_t REG_T_FALL[16] = {0xFF, 0xFF, 0xFF, 0xFF,
 	0xFF, 0xFF, 0xFF, 0xFF,
 	REG_T_FALL_12, REG_T_FALL_13, REG_T_FALL_14, REG_T_FALL_15};
 
-SX1509::SX1509() {
+SX1509::SX1509() : current_state(0), previous_state(0), last_update(0) {
+	memset(pin_states, 0, sizeof(pin_states));
 	_clkX = 0;
 }
 
@@ -146,6 +147,13 @@ void SX1509::PinMode(uint8_t pin, uint8_t inOut, uint8_t initialLevel)
 	}
 }
 
+void SX1509::SetPinMode(uint8_t pin, uint8_t inOut, uint8_t debounce) {
+	PinMode(pin, inOut, 0);
+	if (debounce) {
+		DebouncePin(pin);
+	}
+}
+
 bool SX1509::WritePin(uint8_t pin, uint8_t highLow)
 {
 
@@ -180,7 +188,51 @@ bool SX1509::WritePin(uint8_t pin, uint8_t highLow)
 	}
 }
 
-uint8_t SX1509::ReadPin(uint8_t pin)
+bool SX1509::ReadAllPins() {
+	
+    previous_state = current_state;
+	if (previous_state == current_state) return false;
+    current_state = ReadWord(REG_DATA_B);
+    last_update = System::GetNow();
+        
+    for (int i = 0; i < 16; i++) {
+        bool bit = (current_state >> i) & 0x01;
+        pin_states[i] = (pin_states[i] << 1) | bit;
+    }
+    return true; // return true if the state has changed
+}
+
+bool SX1509::isRisingEdge(uint8_t pin) {
+    return (pin_states[pin] & 0x03) == 0x02;
+}
+
+bool SX1509::isFallingEdge(uint8_t pin) {
+    return (pin_states[pin] & 0x03) == 0x01;
+}
+
+bool SX1509::IsPressed(uint8_t pin) {
+    return (pin_states[pin] & 0x03) == 0x03;
+}
+
+int8_t SX1509::EncoderInc(uint8_t pinA, uint8_t pinB) {
+    
+    bool currentA = (current_state >> pinA) & 0x01;
+        bool previousA = (previous_state >> pinA) & 0x01;
+        bool currentB = (current_state >> pinB) & 0x01;
+        bool previousB = (previous_state >> pinB) & 0x01;
+        
+        if (previousA != currentA) {
+            return (currentA == currentB) ? -1 : 1;
+        }
+        
+        if (previousB != currentB) {
+            return (currentA != currentB) ? -1 : 1;
+        }
+        
+        return 0;
+}	
+
+bool SX1509::ReadPin(uint8_t pin)
 {
 	uint16_t tempRegDir = ReadWord(REG_DIR_B);
 
@@ -188,34 +240,11 @@ uint8_t SX1509::ReadPin(uint8_t pin)
 	{
 		uint16_t tempRegData = ReadWord(REG_DATA_B);
 		if (tempRegData & (1 << pin))
-			return 1;
+			return true;
 	}
 	else
 	{
 		// log_d("Pin %d not INPUT, REG_DIR_B: %d", pin, tempRegDir);
-	}
-	return 0;
-}
-
-bool SX1509::ReadPin(const uint8_t pin, bool *value)
-{
-	uint16_t tempRegDir;
-	if (ReadWord(REG_DIR_B, &tempRegDir))
-	{
-		if (tempRegDir & (1 << pin))
-		{ // If the pin is an input
-			uint16_t tempRegData;
-			if (ReadWord(REG_DATA_B, &tempRegData))
-			{
-				*value = (tempRegData & (1 << pin)) != 0;
-				return true;
-			};
-		}
-		else
-		{
-			*value = false;
-			return true;
-		}
 	}
 	return false;
 }

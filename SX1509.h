@@ -149,7 +149,6 @@ Distributed as-is; no warranty is given.
 #include "daisy.h"
 #include "per/i2c.h"
 #include "per/gpio.h"
-#include "util/sx1509_registers.h"
 
 using namespace daisy;
 
@@ -202,11 +201,11 @@ public:
         void Defaults()
         {
             i2c_config.periph         = I2CHandle::Config::Peripheral::I2C_1;
-            i2c_config.speed          = I2CHandle::Config::Speed::I2C_100KHZ;
+            i2c_config.speed          = I2CHandle::Config::Speed::I2C_400KHZ;
             i2c_config.mode           = I2CHandle::Config::Mode::I2C_MASTER;
             i2c_config.pin_config.scl = Pin(PORTB, 8);
             i2c_config.pin_config.sda = Pin(PORTB, 9);
-            i2c_address               = 0x3E;
+            i2c_address               = 0x3E; // 0x3E, 0x3F, 0x70, 0x71
         }
     };
 	
@@ -230,7 +229,8 @@ public:
     SX1509Config transport;
 
 
-	SX1509();	
+	SX1509();
+
 	GPIO resetPin;
 	GPIO interruptPin;
 	GPIO oscillatorPin;
@@ -260,29 +260,6 @@ public:
         transport.Init(config.transport_config);	
     }
 
-// uint8_t readByte
-uint8_t ReadReg(uint8_t registerAddress);	
-
-// uint16_t readWord
-uint16_t ReadWord(uint8_t registerAddress);
-
-// bool SX1509::readBytes
-bool ReadRegistersOk(uint8_t firstRegisterAddress, uint8_t *destination, uint8_t length);
-
-// uint8_t readByte
-bool ReadReg(uint8_t registerAddress, uint8_t *value);
-
-// uint16_t readWord
-bool ReadWord(uint8_t registerAddress, uint16_t *value);
-
-// bool writeBytes
-bool WriteRegisters(uint8_t firstRegisterAddress, uint8_t *writeArray, uint8_t length);
-// bool writeByte
-bool WriteReg(uint8_t registerAddress, uint8_t writeValue);
-
-// bool writeWord
-bool WriteWord(uint8_t registerAddress, uint16_t writeValue);
-
 // Helper functions:
 // calculateLEDTRegister - Try to estimate an LED on/off duration register,
 // given the number of milliseconds and LED clock frequency.
@@ -309,15 +286,44 @@ uint8_t CalculateSlopeRegister(unsigned long ms, uint8_t onIntensity, uint8_t of
 	void Reset(bool hardware);
 
 	// -----------------------------------------------------------------------------
-	// pinMode(uint8_t pin, uint8_t inOut): This function sets one of the SX1509's 16
-	//		outputs to either an INPUT or OUTPUT.
+	// SetPinMode(uint8_t pin, uint8_t inOut, uint8_t debounce): This function sets
+	//		one of the SX1509's 16 outputs to either an INPUT or OUTPUT.
 	//
 	//	Inputs:
-	//	 	- pin: should be a value between 0 and 15
-	//	 	- inOut: The Arduino INPUT and OUTPUT constants should be used for the
+	//		- pin: should be a value between 0 and 15
+	//		- inOut: The Arduino INPUT and OUTPUT constants should be used for the
 	//		 inOut parameter. They do what they say!
 	// -----------------------------------------------------------------------------
-	void PinMode(uint8_t pin, uint8_t inOut, uint8_t initialLevel = HIGH);
+	void SetPinMode(uint8_t pin, uint8_t inOut, uint8_t debounce);
+
+	// -----------------------------------------------------------------------------
+	// ReadAllPins(): This function reads the HIGH/LOW status of all 16 pins.
+	// -----------------------------------------------------------------------------
+	bool ReadAllPins();
+
+	// -----------------------------------------------------------------------------
+	// isRisingEdge(uint8_t pin): This function checks if a pin has transitioned from
+	//		LOW to HIGH.
+	// -----------------------------------------------------------------------------
+	bool isRisingEdge(uint8_t pin);
+
+	// -----------------------------------------------------------------------------
+		// isFallingEdge(uint8_t pin): This function checks if a pin has transitioned from
+	//		HIGH to LOW.
+	// -----------------------------------------------------------------------------
+	bool isFallingEdge(uint8_t pin);
+
+	// -----------------------------------------------------------------------------
+	// EncoderInc(uint8_t pinA, uint8_t pinB): This function returns the increment
+	//		value of an encoder.
+	// -----------------------------------------------------------------------------
+	int8_t EncoderInc(uint8_t pinA, uint8_t pinB);
+
+	// -----------------------------------------------------------------------------
+	// IsPressed(uint8_t pin): This function checks if a pin is pressed.
+	// -----------------------------------------------------------------------------
+	bool IsPressed(uint8_t pin);	
+
 	// -----------------------------------------------------------------------------
 	// WritePin(uint8_t pin, uint8_t highLow): This function writes a pin to either high
 	//		or low if it's configured as an OUTPUT. If the pin is configured as an
@@ -328,6 +334,7 @@ uint8_t CalculateSlopeRegister(unsigned long ms, uint8_t onIntensity, uint8_t of
 	//		- pin: The SX1509 pin number. Should be a value between 0 and 15.
 	//		- highLow: should be Arduino's defined HIGH or LOW constants.
 	// -----------------------------------------------------------------------------
+
 	bool WritePin(uint8_t pin, uint8_t highLow); // Legacy - use digitalWrite
 
 	// -----------------------------------------------------------------------------
@@ -339,8 +346,8 @@ uint8_t CalculateSlopeRegister(unsigned long ms, uint8_t onIntensity, uint8_t of
 	//  Outputs:
 	//		This function returns a 1 if HIGH, 0 if LOW
 	// -----------------------------------------------------------------------------
-	uint8_t ReadPin(uint8_t pin); // Legacy - use digitalRead
-	bool ReadPin(const uint8_t pin, bool *value);
+
+	bool ReadPin(const uint8_t pin);
 
 	// -----------------------------------------------------------------------------
 	// ledDriverInit(uint8_t pin, uint8_t freq, bool log): This function initializes LED
@@ -635,6 +642,44 @@ uint8_t CalculateSlopeRegister(unsigned long ms, uint8_t onIntensity, uint8_t of
 	void Clock(uint8_t oscSource = 2, uint8_t oscDivider = 1, uint8_t oscPinFunction = 0, uint8_t oscFreqOut = 0);
 private:
 
+uint16_t current_state;
+uint16_t previous_state;
+uint16_t pin_states[16];
+unsigned long last_update;
+
+// uint8_t readByte
+uint8_t ReadReg(uint8_t registerAddress);	
+
+// uint16_t readWord
+uint16_t ReadWord(uint8_t registerAddress);
+
+// bool SX1509::readBytes
+bool ReadRegistersOk(uint8_t firstRegisterAddress, uint8_t *destination, uint8_t length);
+
+// uint8_t readByte
+bool ReadReg(uint8_t registerAddress, uint8_t *value);
+
+// uint16_t readWord
+bool ReadWord(uint8_t registerAddress, uint16_t *value);
+
+// bool writeBytes
+bool WriteRegisters(uint8_t firstRegisterAddress, uint8_t *writeArray, uint8_t length);
+// bool writeByte
+bool WriteReg(uint8_t registerAddress, uint8_t writeValue);
+
+// bool writeWord
+bool WriteWord(uint8_t registerAddress, uint16_t writeValue);
+
+// -----------------------------------------------------------------------------
+// pinMode(uint8_t pin, uint8_t inOut): This function sets one of the SX1509's 16
+//		outputs to either an INPUT or OUTPUT.
+//
+//	Inputs:
+//	 	- pin: should be a value between 0 and 15
+//	 	- inOut: The Arduino INPUT and OUTPUT constants should be used for the
+//		 inOut parameter. They do what they say!
+// -----------------------------------------------------------------------------
+void PinMode(uint8_t pin, uint8_t inOut, uint8_t initialLevel = HIGH);
 
 };
 
