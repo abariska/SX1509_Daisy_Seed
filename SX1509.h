@@ -227,8 +227,9 @@ class SX1509
 {
 public:
     SX1509Config transport;
-
-
+	uint16_t pin_states[16];
+	uint16_t current_state;
+	uint16_t previous_state;
 	SX1509();
 
 	GPIO resetPin;
@@ -297,9 +298,12 @@ uint8_t CalculateSlopeRegister(unsigned long ms, uint8_t onIntensity, uint8_t of
 	void SetPinMode(uint8_t pin, uint8_t inOut, uint8_t debounce);
 
 	// -----------------------------------------------------------------------------
-	// ReadAllPins(): This function reads the HIGH/LOW status of all 16 pins.
+	// CheckPinsChanged(): This function checks if the HIGH/LOW status of all 16 pins has changed.
 	// -----------------------------------------------------------------------------
 	bool ReadAllPins();
+
+	bool CurrentPinState(uint8_t pin);
+	bool PreviousPinState(uint8_t pin);
 
 	// -----------------------------------------------------------------------------
 	// isRisingEdge(uint8_t pin): This function checks if a pin has transitioned from
@@ -312,12 +316,6 @@ uint8_t CalculateSlopeRegister(unsigned long ms, uint8_t onIntensity, uint8_t of
 	//		HIGH to LOW.
 	// -----------------------------------------------------------------------------
 	bool isFallingEdge(uint8_t pin);
-
-	// -----------------------------------------------------------------------------
-	// EncoderInc(uint8_t pinA, uint8_t pinB): This function returns the increment
-	//		value of an encoder.
-	// -----------------------------------------------------------------------------
-	int8_t EncoderInc(uint8_t pinA, uint8_t pinB);
 
 	// -----------------------------------------------------------------------------
 	// IsPressed(uint8_t pin): This function checks if a pin is pressed.
@@ -640,12 +638,13 @@ uint8_t CalculateSlopeRegister(unsigned long ms, uint8_t onIntensity, uint8_t of
 	//
 	// -----------------------------------------------------------------------------
 	void Clock(uint8_t oscSource = 2, uint8_t oscDivider = 1, uint8_t oscPinFunction = 0, uint8_t oscFreqOut = 0);
+
+
+//-----------------------------PRIVATE-------------------------------------//
 private:
 
-uint16_t current_state;
-uint16_t previous_state;
-uint16_t pin_states[16];
 unsigned long last_update;
+unsigned long last_increment_time;
 
 // uint8_t readByte
 uint8_t ReadReg(uint8_t registerAddress);	

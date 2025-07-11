@@ -22,7 +22,9 @@ local, and you've found our code helpful, please buy us a round!
 Distributed as-is; no warranty is given.
 ******************************************************************************/
 
+
 #include "SX1509.h"
+
 
 uint8_t REG_I_ON[16] = {REG_I_ON_0, REG_I_ON_1, REG_I_ON_2, REG_I_ON_3,
 	REG_I_ON_4, REG_I_ON_5, REG_I_ON_6, REG_I_ON_7,
@@ -190,47 +192,35 @@ bool SX1509::WritePin(uint8_t pin, uint8_t highLow)
 
 bool SX1509::ReadAllPins() {
 	
-    previous_state = current_state;
-	if (previous_state == current_state) return false;
-    current_state = ReadWord(REG_DATA_B);
+    uint16_t new_state;
+    new_state = ReadWord(REG_DATA_B);
+	if (new_state == current_state) {
+		previous_state = current_state;
+		return false;
+	}
+	current_state = new_state;
     last_update = System::GetNow();
-        
-    for (int i = 0; i < 16; i++) {
-        bool bit = (current_state >> i) & 0x01;
-        pin_states[i] = (pin_states[i] << 1) | bit;
-    }
+    
     return true; // return true if the state has changed
 }
 
-bool SX1509::isRisingEdge(uint8_t pin) {
-    return (pin_states[pin] & 0x03) == 0x02;
+bool SX1509::CurrentPinState(uint8_t pin) {
+    return !((current_state >> pin) & 0x01); 
 }
 
-bool SX1509::isFallingEdge(uint8_t pin) {
-    return (pin_states[pin] & 0x03) == 0x01;
+bool SX1509::PreviousPinState(uint8_t pin) {
+    return !((previous_state >> pin) & 0x01); 
 }
 
 bool SX1509::IsPressed(uint8_t pin) {
-    return (pin_states[pin] & 0x03) == 0x03;
+    return CurrentPinState(pin);
 }
-
-int8_t SX1509::EncoderInc(uint8_t pinA, uint8_t pinB) {
-    
-    bool currentA = (current_state >> pinA) & 0x01;
-        bool previousA = (previous_state >> pinA) & 0x01;
-        bool currentB = (current_state >> pinB) & 0x01;
-        bool previousB = (previous_state >> pinB) & 0x01;
-        
-        if (previousA != currentA) {
-            return (currentA == currentB) ? -1 : 1;
-        }
-        
-        if (previousB != currentB) {
-            return (currentA != currentB) ? -1 : 1;
-        }
-        
-        return 0;
-}	
+bool SX1509::isRisingEdge(uint8_t pin) {
+    return (PreviousPinState(pin) == 0) && (CurrentPinState(pin) == 1);
+}
+bool SX1509::isFallingEdge(uint8_t pin) {
+    return (PreviousPinState(pin) == 1) && (CurrentPinState(pin) == 0);
+}
 
 bool SX1509::ReadPin(uint8_t pin)
 {
