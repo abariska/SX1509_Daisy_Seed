@@ -192,16 +192,23 @@ bool SX1509::WritePin(uint8_t pin, uint8_t highLow)
 
 bool SX1509::ReadAllPins() {
 	
-    uint16_t new_state;
-    new_state = ReadWord(REG_DATA_B);
+    uint16_t new_state = ReadWord(REG_DATA_B);
+
+	if (current_state == 0 && previous_state == 0) {
+        current_state  = new_state;
+        previous_state = new_state;
+        return true;
+    }
+	
 	if (new_state == current_state) {
-		previous_state = current_state;
 		return false;
 	}
+
+	previous_state = current_state;
 	current_state = new_state;
     last_update = System::GetNow();
     
-    return true; // return true if the state has changed
+    return true; 
 }
 
 bool SX1509::CurrentPinState(uint8_t pin) {
