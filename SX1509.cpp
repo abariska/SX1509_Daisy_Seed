@@ -76,7 +76,7 @@ uint8_t SX1509::Check() // Arduino init()
 	if (testRegisters == 0xFF00)
 	{
 		// Set the clock to a default of 2MHz using internal
-		Clock(INTERNAL_CLOCK_2MHZ);
+		Clock(SX_INTERNAL_CLOCK_2MHZ);
 
 		return 1;
 	}
@@ -97,9 +97,9 @@ void SX1509::Reset(bool hardware)
 			WriteReg(REG_MISC, regMisc);
 		}
 		// Reset the SX1509, the pin is active low
-		resetPin.Write(LOW);	  // pull reset pin low
+		resetPin.Write(SX_LOW);	  // pull reset pin low
 		System::Delay(1);					  // Wait for the pin to settle
-		resetPin.Write(HIGH);	  // pull reset pin back high
+		resetPin.Write(SX_HIGH);	  // pull reset pin back high
 	}
 	else
 	{
@@ -115,10 +115,10 @@ void SX1509::PinMode(uint8_t pin, uint8_t inOut, uint8_t initialLevel)
 	//	0: IO is configured as an output
 	//	1: IO is configured as an input
 	uint8_t modeBit;
-	if ((inOut == PIN_OUTPUT) || (inOut == PIN_ANALOG_OUTPUT))
+	if ((inOut == SX_PIN_OUTPUT) || (inOut == SX_PIN_ANALOG_OUTPUT))
 	{
 		uint16_t tempRegData = ReadWord(REG_DATA_B);
-		if (initialLevel == LOW)
+		if (initialLevel == SX_LOW)
 		{
 			tempRegData &= ~(1 << pin);
 			WriteWord(REG_DATA_B, tempRegData);
@@ -139,11 +139,11 @@ void SX1509::PinMode(uint8_t pin, uint8_t inOut, uint8_t initialLevel)
 	WriteWord(REG_DIR_B, tempRegDir);
 
 	// If PIN_INPUT_PULLUP was called, set up the pullup too:
-	if (inOut == PIN_INPUT_PULLUP)
-		WritePin(pin, HIGH);
+	if (inOut == SX_PIN_INPUT_PULLUP)
+		WritePin(pin, SX_HIGH);
 
 	// If PIN_ANALOG_OUTPUT was called, set up the LED driver for it:
-	if (inOut == PIN_ANALOG_OUTPUT)
+	if (inOut == SX_PIN_ANALOG_OUTPUT)
 	{
 		LedDriverInit(pin);
 	}
@@ -175,13 +175,13 @@ bool SX1509::WritePin(uint8_t pin, uint8_t highLow)
 		uint16_t tempPullUp = ReadWord(REG_PULL_UP_B);
 		uint16_t tempPullDown = ReadWord(REG_PULL_DOWN_B);
 
-		if (highLow) // if HIGH, do pull-up, disable pull-down
+		if (highLow) // if SX_HIGH, do pull-up, disable pull-down
 		{
 			tempPullUp |= (1 << pin);
 			tempPullDown &= ~(1 << pin);
 			return WriteWord(REG_PULL_UP_B, tempPullUp) && WriteWord(REG_PULL_DOWN_B, tempPullDown);
 		}
-		else // If LOW do pull-down, disable pull-up
+		else // If SX_LOW do pull-down, disable pull-up
 		{
 			tempPullDown |= (1 << pin);
 			tempPullUp &= ~(1 << pin);
@@ -390,7 +390,7 @@ void SX1509::Keypad(uint8_t rows, uint8_t columns, uint16_t sleepTime, uint8_t s
 
 	// If clock hasn't been set up, set it to internal 2MHz
 	if (_clkX == 0)
-		Clock(INTERNAL_CLOCK_2MHZ);
+		Clock(SX_INTERNAL_CLOCK_2MHZ);
 
 	// Set regDir 0:7 outputs, 8:15 inputs:
 	tempWord = ReadWord(REG_DIR_B);
@@ -507,9 +507,9 @@ void SX1509::Sync(void)
 	}
 
 	// Toggle nReset pin to sync LED timers	  // set reset pin as output
-	resetPin.Write(LOW);  // pull reset pin low
+	resetPin.Write(SX_LOW);  // pull reset pin low
 	System::Delay(1);					  // Wait for the pin to settle
-	resetPin.Write(HIGH); // pull reset pin back high
+	resetPin.Write(SX_HIGH); // pull reset pin back high
 
 	// Return nReset to POR functionality
 	WriteReg(REG_MISC, (regMisc & ~(1 << 2)));
@@ -538,7 +538,7 @@ void SX1509::DebounceConfig(uint8_t configValue)
 void SX1509::DebounceTime(uint8_t time)
 {
 	if (_clkX == 0)					   // If clock hasn't been set up.
-		Clock(INTERNAL_CLOCK_2MHZ, 1); // Set clock to 2MHz.
+		Clock(SX_INTERNAL_CLOCK_2MHZ, 1); // Set clock to 2MHz.
 
 	// Debounce time-to-byte map: (assuming fOsc = 2MHz)
 	// 0: 0.5ms		1: 1ms
@@ -591,13 +591,13 @@ void SX1509::EnableInterrupt(uint8_t pin, uint8_t riseFall)
 	uint8_t sensitivity = 0;
 	switch (riseFall)
 	{
-	case CHANGE:
+	case SX_CHANGE:
 		sensitivity = 0b11;
 		break;
-	case FALLING:
+	case SX_FALLING:
 		sensitivity = 0b10;
 		break;
-	case RISING:
+	case SX_RISING:
 		sensitivity = 0b01;
 		break;
 	}

@@ -150,9 +150,6 @@ Distributed as-is; no warranty is given.
 #include "per/i2c.h"
 #include "per/gpio.h"
 
-using namespace daisy;
-
-
 extern uint8_t REG_I_ON[16];
 extern uint8_t REG_T_ON[16];
 extern uint8_t REG_OFF[16];
@@ -160,31 +157,33 @@ extern uint8_t REG_T_RISE[16];
 extern uint8_t REG_T_FALL[16];
 
 // These are used for setting LED driver to linear or log mode:
-#define LINEAR 0
-#define LOGARITHMIC 1
+#define SX_LINEAR 0
+#define SX_LOGARITHMIC 1
 
 // These are used for clock config:
-#define INTERNAL_CLOCK_2MHZ 2
-#define EXTERNAL_CLOCK 1
+#define SX_INTERNAL_CLOCK_2MHZ 2
+#define SX_EXTERNAL_CLOCK 1
 
 // These are used for reset:
-#define SOFTWARE_RESET 0
-#define HARDWARE_RESET 1
+#define SX_SOFTWARE_RESET 0
+#define SX_HARDWARE_RESET 1
 
 // States for Pin
-#define HIGH 1
-#define LOW 0
+#define SX_HIGH 1
+#define SX_LOW 0
 
 // Interrupt mode
-#define CHANGE 1
-#define FALLING 2
-#define RISING 3
+#define SX_CHANGE 1
+#define SX_FALLING 2
+#define SX_RISING 3
 
 // Pin mode
-#define PIN_INPUT 0
-#define PIN_OUTPUT 1
-#define PIN_INPUT_PULLUP 2
-#define PIN_ANALOG_OUTPUT 3 // To set a pin mode for PWM output
+#define SX_PIN_INPUT 0
+#define SX_PIN_OUTPUT 1
+#define SX_PIN_INPUT_PULLUP 2
+#define SX_PIN_ANALOG_OUTPUT 3 // To set a pin mode for PWM output
+
+using namespace daisy;
 
 class SX1509Config
 {
@@ -257,7 +256,7 @@ public:
 		resetPin.Init(config.resetPin, GPIO::Mode::OUTPUT, GPIO::Pull::NOPULL);
 		interruptPin.Init(config.interruptPin, GPIO::Mode::INPUT, GPIO::Pull::NOPULL);
 		oscillatorPin.Init(config.oscillatorPin, GPIO::Mode::INPUT, GPIO::Pull::NOPULL);
-		resetPin.Write(HIGH);
+		resetPin.Write(SX_HIGH);
         transport.Init(config.transport_config);	
     }
 
@@ -437,7 +436,7 @@ uint8_t CalculateSlopeRegister(unsigned long ms, uint8_t onIntensity, uint8_t of
 	// 		- ledDriverInit should be called on the pin to be blinked before this,
 	//  	  Or call pinMode(<pin>, ANALOG_OUTPUT);
 	// -----------------------------------------------------------------------------
-	void Breath(uint8_t pin, unsigned long tOn, unsigned long tOff, unsigned long rise, unsigned long fall, uint8_t onInt = 255, uint8_t offInt = 0, bool log = LINEAR);
+	void Breath(uint8_t pin, unsigned long tOn, unsigned long tOff, unsigned long rise, unsigned long fall, uint8_t onInt = 255, uint8_t offInt = 0, bool log = SX_LINEAR);
 
 	// -----------------------------------------------------------------------------
 	// keypad(uint8_t rows, uint8_t columns, uint8_t sleepTime, uint8_t scanTime, uint8_t debounceTime)
@@ -678,7 +677,7 @@ bool WriteWord(uint8_t registerAddress, uint16_t writeValue);
 //	 	- inOut: The Arduino INPUT and OUTPUT constants should be used for the
 //		 inOut parameter. They do what they say!
 // -----------------------------------------------------------------------------
-void PinMode(uint8_t pin, uint8_t inOut, uint8_t initialLevel = HIGH);
+void PinMode(uint8_t pin, uint8_t inOut, uint8_t initialLevel = SX_HIGH);
 
 };
 
