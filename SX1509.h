@@ -204,7 +204,9 @@ public:
             i2c_config.mode           = I2CHandle::Config::Mode::I2C_MASTER;
             i2c_config.pin_config.scl = Pin(PORTB, 8);
             i2c_config.pin_config.sda = Pin(PORTB, 9);
-            i2c_address               = 0x3E; // 0x3E, 0x3F, 0x70, 0x71
+			// for new versions of library(v7.2.0 and above). 
+			// for earlier versions use i2c_address = (0x3E << 1) instead
+			i2c_address = 0x3E;
         }
     };
 	
@@ -216,10 +218,12 @@ public:
     };
 
     void Init(const Config& config)
-    {
-        i2c_address_ = config.i2c_address << 1;
+	{
+		// for new versions of library(v7.2.0 and above). 
+		// for earlier versions use i2c_address = (config.i2c_address << 1) instead
+		i2c_address_ = config.i2c_address;
 		i2c_.Init(config.i2c_config);
-    };
+	}
 };
 
 class SX1509

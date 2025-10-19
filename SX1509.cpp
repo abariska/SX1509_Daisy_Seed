@@ -59,7 +59,7 @@ SX1509::SX1509() : current_state(0), previous_state(0), last_update(0) {
 uint8_t SX1509::Check() // Arduino init()
 {
 	// If the reset pin is connected
-	if (!resetPin.Read())
+	if (resetPin.Read())
 	{
 		Reset(true);
 	} else
