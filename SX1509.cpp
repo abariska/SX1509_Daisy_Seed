@@ -58,7 +58,7 @@ SX1509::SX1509() : current_state(0), previous_state(0), last_update(0) {
 
 uint8_t SX1509::Check() // Arduino init()
 {
-	// If the reset pin is pulled high
+	// If the reset pin is connected
 	if (resetPin.Read())
 	{
 		Reset(true);
@@ -123,7 +123,7 @@ void SX1509::PinMode(uint8_t pin, uint8_t inOut, uint8_t initialLevel)
 			tempRegData &= ~(1 << pin);
 			WriteWord(REG_DATA_B, tempRegData);
 		}
-		modeBit = 0;
+		modeBit = 0; 
 	}
 	else
 	{
